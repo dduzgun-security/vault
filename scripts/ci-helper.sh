@@ -135,6 +135,36 @@ function version_package() {
   awk '{ gsub("-","~",$1); print $1 }' <<< "$VAULT_VERSION"
 }
 
+# Install external tools
+function install_external_tools() {
+  # These tools map 1:1 to the external tools required in scripts/requires_external.go
+  local tools
+  tools=(
+    golang.org/x/tools/cmd/goimports
+    github.com/golangci/revgrep/cmd/revgrep
+    mvdan.cc/gofumpt
+    honnef.co/go/tools/cmd/staticcheck
+    github.com/client9/misspell/cmd/misspell
+    # Buf is pinned in scripts/go.mod. It will need to updated there as well.
+    github.com/bufbuild/buf/cmd/buf@v1.25.0
+  )
+
+  echo "--> Installing external tools"
+  pushd "$(repo_root)/scripts" > /dev/null || return 1
+    for tool in "${tools[@]}"; do
+      go install "$tool"
+    done
+  popd > /dev/null || return 1
+}
+
+# Update external tool modules
+function update_external_tool_modules() {
+  echo "--> Updating external tool modules"
+  pushd "$(repo_root)/scripts" > /dev/null || return 1
+    go get -u .
+  popd > /dev/null || return 1
+}
+
 # Run the CI Helper
 function main() {
   case $1 in
@@ -153,11 +183,17 @@ function main() {
   date)
     build_date
   ;;
+  install-external-tools)
+    install_external_tools
+  ;;
   prepare-legal)
     prepare_legal
   ;;
   revision)
     build_revision
+  ;;
+  update-external-tool-modules)
+    update_external_tool_modules
   ;;
   version-package)
     version_package

@@ -65,10 +65,10 @@ runs:
       shell: bash
       run: |
         git config --global url."https://${{ inputs.github-token }}@github.com".insteadOf https://github.com
-        for mod in $(find . -type f -name go.mod); do
-          pushd "$(dirname $mod)"
-            go list ./...
-            go list -test ./...
-            go mod download
-          popd
-        done
+        while IFS= read -r -d '' mod; do
+          echo "Downloading Go modules for $mod"
+          pushd "$(dirname "$mod")" > /dev/null || (echo "failed to push into module dir" && exit 1)
+            GOOS=linux GOARCH=amd64 go mod download -x
+          popd > /dev/null || (echo "failed to pop out of module dir" && exit 1)
+        done < <(find . -type f -name go.mod -print0)
+        du -h -d 1 ${{ steps.metadata.outputs.cache-path }}

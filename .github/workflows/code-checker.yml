@@ -78,7 +78,7 @@ jobs:
       - name: Go format
         run: |
           make ci-bootstrap
-          echo "Using gofumpt version $(go run mvdan.cc/gofumpt -version)"
+          echo "Using gofumpt version $(gofumpt -version)"
           make fmt
           if ! git diff --exit-code; then
             echo "Code has formatting errors. Run 'make fmt' to fix"
@@ -87,7 +87,7 @@ jobs:
       - name: Protobuf format
         run: |
           make bootstrap
-          echo "Using buf version $(go run github.com/bufbuild/buf/cmd/buf --version)"
+          echo "Using buf version $(buf --version)"
           make protofmt
           if ! git diff --exit-code; then
             echo "Protobuf code has formatting errors. Run 'make protofmt' to fix"

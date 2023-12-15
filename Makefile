@@ -7,13 +7,6 @@ TEST_TIMEOUT?=45m
 EXTENDED_TEST_TIMEOUT=60m
 INTEG_TEST_TIMEOUT=120m
 VETARGS?=-asmdecl -atomic -bool -buildtags -copylocks -methods -nilfunc -printf -rangeloops -shift -structtags -unsafeptr
-EXTERNAL_TOOLS_CI=\
-	golang.org/x/tools/cmd/goimports \
-	github.com/golangci/revgrep/cmd/revgrep \
-	mvdan.cc/gofumpt \
-	honnef.co/go/tools/cmd/staticcheck
-EXTERNAL_TOOLS=\
-	github.com/client9/misspell/cmd/misspell
 GOFMT_FILES?=$$(find . -name '*.go' | grep -v pb.go | grep -v vendor)
 SED?=$(shell command -v gsed || command -v sed)
 
@@ -167,19 +160,13 @@ prep:
 
 # bootstrap the build by downloading additional tools needed to build
 ci-bootstrap: .ci-bootstrap
-.ci-bootstrap:
-	@for tool in  $(EXTERNAL_TOOLS_CI) ; do \
-		echo "Installing/Updating $$tool" ; \
-		GO111MODULE=off $(GO_CMD) get -u $$tool; \
-	done
-	go install github.com/bufbuild/buf/cmd/buf@v1.25.0
+.ci-bootstrap: ci-update-external-tool-modules ci-install-external-tools
 	@touch .ci-bootstrap
 
 # bootstrap the build by downloading additional tools that may be used by devs
-bootstrap: ci-bootstrap
+bootstrap: ci-update-external-tool-modules ci-install-external-tools
 	@sh -c "'$(CURDIR)/scripts/goversioncheck.sh' '$(GO_VERSION_MIN)'"
-	go generate -tags tools tools/tools.go
-	go install github.com/bufbuild/buf/cmd/buf@v1.25.0
+	@$(GO_CMD) generate -tags tools tools/tools.go
 
 # Note: if you have plugins in GOPATH you can update all of them via something like:
 # for i in $(ls | grep vault-plugin-); do cd $i; git remote update; git reset --hard origin/master; dep ensure -update; git add .; git commit; git push; cd ..; done
@@ -314,9 +301,17 @@ ci-get-revision:
 ci-get-version-package:
 	@$(CURDIR)/scripts/ci-helper.sh version-package
 
+.PHONY: ci-install-external-tools
+ci-install-external-tools:
+	@$(CURDIR)/scripts/ci-helper.sh install-external-tools
+
 .PHONY: ci-prepare-legal
 ci-prepare-legal:
 	@$(CURDIR)/scripts/ci-helper.sh prepare-legal
+
+.PHONY: ci-update-external-tool-modules
+ci-update-external-tool-modules:
+	@$(CURDIR)/scripts/ci-helper.sh update-external-tool-modules
 
 .PHONY: ci-copywriteheaders
 ci-copywriteheaders:
